@@ -15,7 +15,7 @@ on:
         description: 'Deploy the terraform'
         required: false
         type: boolean
-        default: true
+        default: false
       deployed-url:
         description: 'URL of the deployed instance iff deploy is false'
         required: false
@@ -92,7 +92,7 @@ jobs:
 
   deploy-already:
     name: Deployed already
-    if: ${{ !inputs.deploy && inputs.deployed-url }}
+    if: ${{ inputs.deploy != true && inputs.deployed-url != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Collect deployed URL
