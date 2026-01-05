@@ -1,0 +1,92 @@
+name: Cloud (Deployment)
+
+concurrency:
+  group: cloud
+  cancel-in-progress: false
+
+on:
+  workflow_call:
+    inputs:
+      assignment:
+        description: 'Name of the assignment e.g. spamoverflow'
+        required: true
+        type: string
+      functionality:
+        description: 'Run functionality tests against the deployment'
+        required: false
+        type: boolean
+        default: false
+      load:
+        description: 'Run sample load tests against the deployment'
+        required: false
+        type: boolean
+        default: false
+      aws-access-key-id:
+        description: 'AWS Access Key ID for your lab account'
+        required: false
+        type: string
+      aws-secret-access-key:
+        description: 'AWS Secret Access Key for your lab account'
+        required: false
+        type: string
+      aws-session-token:
+        description: 'AWS Session Token for your lab account'
+        required: false
+        type: string
+
+jobs:
+  deploy-local:
+    name: Test (Stage 1)
+    if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build
+        shell: bash
+        timeout-minutes: 20
+        run: |
+          ./local.sh
+
+      - name: Collect deployed URL
+        shell: bash
+        run: |
+          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_OUTPUT"
+
+  deploy-remote:
+    name: Deploy (Stage 2 & 3)
+    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ steps.creds.outputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ steps.creds.outputs.aws-secret-access-key }}
+          aws-session-token: ${{ steps.creds.outputs.aws-session-token }}
+
+  functionality:
+    name: Test Functionality
+    runs-on: ubuntu-latest
+    if: ${{ inputs.functionality }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+  load:
+    name: Test Load
+    runs-on: ubuntu-latest
+    if: ${{ inputs.load }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+  destroy-deployment:
+    name: Tear Down
+    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
