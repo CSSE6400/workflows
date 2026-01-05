@@ -118,9 +118,9 @@ jobs:
       - name: Check
         uses: actions/github-script@v6
         env:
-          ENDPOINT_LOCAL: needs.deploy-local.output.endpoint
-          ENDPOINT_REMOTE: needs.deploy-remote.output.endpoint
-          ENDPOINT_EXTERNAL: needs.deploy-external.output.endpoint
+          ENDPOINT_LOCAL: ${{ needs.deploy-local.output.endpoint }}
+          ENDPOINT_REMOTE: ${{ needs.deploy-remote.output.endpoint }}
+          ENDPOINT_EXTERNAL: ${{ needs.deploy-external.output.endpoint }}
         with:
           script: |
             const local = process.env.ENDPOINT_LOCAL;
