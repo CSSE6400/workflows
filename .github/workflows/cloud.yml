@@ -48,6 +48,8 @@ jobs:
     name: Build (Stage 1)
     if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
     runs-on: ubuntu-latest
+    outputs:
+      endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -60,13 +62,16 @@ jobs:
 
       - name: Collect deployed URL
         shell: bash
+        id: collect
         run: |
-          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_ENV"
+          echo "endpoint=$(cat ./api.txt)" >> "$GITHUB_OUTPUT"
 
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: ubuntu-latest
+    outputs:
+      endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5.1.1
@@ -86,36 +91,49 @@ jobs:
         run: tofu init
 
       - name: Collect deployed URL
+        id: collect
         shell: bash
         run: |
-          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_ENV"
+          echo "endpoint=$(cat ./api.txt)" >> "$GITHUB_OUTPUT"
 
-  deploy-already:
-    name: Deployed already
+  deploy-external:
+    name: Deployed External (via user)
     if: ${{ inputs.deploy != true && inputs.deployed-url != '' }}
     runs-on: ubuntu-latest
+    outputs:
+      endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
       - name: Collect deployed URL
         shell: bash
+        id: collect
         run: |
-          echo "TEST_ENDPOINT=${{ inputs.deployed-url }}" >> "$GITHUB_ENV"
+          echo "endpoint=${{ inputs.deployed-url }}" >> "$GITHUB_OUTPUT"
 
   deploy-check:
     name: Check Endpoint
     if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) }}
-    needs: [deploy-local, deploy-remote, deploy-already]
+    needs: [deploy-local, deploy-remote, deploy-external]
     runs-on: ubuntu-latest
     steps:
       - name: Check
         uses: actions/github-script@v6
+        env:
+          ENDPOINT_LOCAL: needs.deploy-local.output.endpoint
+          ENDPOINT_REMOTE: needs.deploy-remote.output.endpoint
+          ENDPOINT_EXTERNAL: needs.deploy-external.output.endpoint
         with:
           script: |
-            const endpoint = process.env.TEST_ENDPOINT
+            const local = process.env.ENDPOINT_LOCAL;
+            const remote = process.env.ENDPOINT_REMOTE;
+            const external = process.env.ENDPOINT_EXTERNAL;
+            
+            const endpoint = local ?? remote ?? external;
             if (endpoint === undefined || endpoint == '' ) {
               core.setFailed('Do not have a valid test endpoint');
-            } else {
-              console.log('Test Endpoint: ' + endpoint);
             }
+            
+            console.log('Test Endpoint: ' + endpoint);
+            core.setOutput('endpoint', endpoint);
 
   functionality:
     name: Test Functionality
