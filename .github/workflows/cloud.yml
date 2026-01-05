@@ -180,7 +180,7 @@ jobs:
         uses: actions/checkout@v6
 
   destroy-deploy:
-    name: Tear Down
+    name: Tear Down (Stage 2 & 3)
     if: ${{ always() && inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
     needs: [deploy-remote, functionality, load]
     runs-on: ubuntu-latest
