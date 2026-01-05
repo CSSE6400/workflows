@@ -11,6 +11,15 @@ on:
         description: 'Name of the assignment e.g. spamoverflow'
         required: true
         type: string
+      deploy:
+        description: 'Deploy the terraform'
+        required: false
+        type: boolean
+        default: true
+      deployed-url:
+        description: 'URL of the deployed instance iff deploy is false'
+        required: false
+        type: string
       functionality:
         description: 'Run functionality tests against the deployment'
         required: false
@@ -36,7 +45,7 @@ on:
 
 jobs:
   deploy-local:
-    name: Test (Stage 1)
+    name: Build (Stage 1)
     if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
     runs-on: ubuntu-latest
     steps:
@@ -52,11 +61,11 @@ jobs:
       - name: Collect deployed URL
         shell: bash
         run: |
-          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_OUTPUT"
+          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_ENV"
 
   deploy-remote:
-    name: Deploy (Stage 2 & 3)
-    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    name: Build & Deploy (Stage 2 & 3)
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Configure AWS Credentials
@@ -66,19 +75,61 @@ jobs:
           aws-access-key-id: ${{ steps.creds.outputs.aws-access-key-id }}
           aws-secret-access-key: ${{ steps.creds.outputs.aws-secret-access-key }}
           aws-session-token: ${{ steps.creds.outputs.aws-session-token }}
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: fmt check
+        id: fmt
+        run: tofu fmt -check
+
+      - name: Init
+        run: tofu init
+
+      - name: Collect deployed URL
+        shell: bash
+        run: |
+          echo "TEST_ENDPOINT=$(cat ./api.txt)" >> "$GITHUB_ENV"
+
+  deploy-already:
+    name: Deployed already
+    if: ${{ !inputs.deploy && inputs.deployed-url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect deployed URL
+        shell: bash
+        run: |
+          echo "TEST_ENDPOINT=${{ inputs.deployed-url }}" >> "$GITHUB_ENV"
+
+  deploy-check:
+    name: Check Deployed (Stage 2 & 3)
+    if: ${{ inputs.deploy || inputs.functionality || inputs.load }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const endpoint = process.env.TEST_ENDPOINT
+            if (endpoint == '') {
+              core.setFailed('Do not have a valid test endpoint');
+            } else {
+              console.log('Test Endpoint: ' + endpoint);
+            }
 
   functionality:
     name: Test Functionality
     runs-on: ubuntu-latest
     if: ${{ inputs.functionality }}
+    needs: deploy-check
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
   load-check:
-    name: Test Load Config
+    name: Check Load
     runs-on: ubuntu-latest
     if: ${{ inputs.load }}
+    needs: deploy-check
     steps:
       - name: Check
         uses: actions/github-script@v6
@@ -97,13 +148,15 @@ jobs:
     name: Test Load
     runs-on: ubuntu-latest
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: load-check
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-  destroy-deployment:
+  destroy-deploy:
     name: Tear Down
-    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    if: ${{ inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    needs: deploy-remote
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
