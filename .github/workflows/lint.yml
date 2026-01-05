@@ -1,0 +1,62 @@
+name: OpenTofu Linting
+
+on:
+  workflow_call:
+
+jobs:
+  lint-terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: fmt check
+        id: fmt
+        run: tofu fmt -check
+
+      - name: Init
+        run: tofu init
+
+      - name: Validate
+        id: validate
+        run: tofu validate
+
+      - uses: terraform-linters/setup-tflint@v6
+        name: Setup TFLint
+        with:
+          tflint_version: v0.52.0
+          cache: true
+
+      - name: TFLint config
+        id: tflint-config
+        shell: bash
+        run: |
+          cat <<EOF > .tflint.hcl
+          tflint {
+            required_version = ">= 0.50"
+          }
+            
+          config {
+            format = "compact"
+          }
+            
+          plugin "aws" {
+            enabled = true
+            version = "0.45.0"
+            source  = "github.com/terraform-linters/tflint-ruleset-aws"
+          }
+          EOF
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint -f compact
