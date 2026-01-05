@@ -149,7 +149,7 @@ jobs:
     name: Test Load
     runs-on: ubuntu-latest
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    needs: load-check
+    needs: [functionality, load-check]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -157,7 +157,7 @@ jobs:
   destroy-deploy:
     name: Tear Down
     if: ${{ inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
-    needs: deploy-remote
+    needs: [deploy-remote, functionality, load]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
