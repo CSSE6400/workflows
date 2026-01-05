@@ -114,8 +114,11 @@ jobs:
     if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) }}
     needs: [deploy-local, deploy-remote, deploy-external]
     runs-on: ubuntu-latest
+    outputs:
+      endpoint: ${{ steps.check.outputs.endpoint }}
     steps:
       - name: Check
+        id: check
         uses: actions/github-script@v6
         env:
           ENDPOINT_LOCAL: ${{ needs.deploy-local.outputs.endpoint }}
@@ -133,6 +136,8 @@ jobs:
             if (endpoint === undefined || endpoint == '' ) {
               core.setFailed('Do not have a valid test endpoint');
             }
+            
+            // todo: check that the endpoint is a correct url
             
             console.log('Test Endpoint: ' + endpoint);
             core.setOutput('endpoint', endpoint);
