@@ -129,7 +129,7 @@ jobs:
             
             console.log('local (' + local + ') remote (' + remote + ') external (' + external + ')');
             
-            const endpoint = local ?? remote ?? external;
+            const endpoint = local || remote || external;
             if (endpoint === undefined || endpoint == '' ) {
               core.setFailed('Do not have a valid test endpoint');
             }
