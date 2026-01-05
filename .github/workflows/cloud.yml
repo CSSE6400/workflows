@@ -101,7 +101,7 @@ jobs:
           echo "TEST_ENDPOINT=${{ inputs.deployed-url }}" >> "$GITHUB_ENV"
 
   deploy-check:
-    name: Check Deployed (Stage 2 & 3)
+    name: Check Endpoint
     if: ${{ always() && (inputs.deploy || inputs.functionality || inputs.load) }}
     needs: [deploy-local, deploy-remote, deploy-already]
     runs-on: ubuntu-latest
