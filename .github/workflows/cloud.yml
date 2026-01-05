@@ -102,7 +102,8 @@ jobs:
 
   deploy-check:
     name: Check Deployed (Stage 2 & 3)
-    if: ${{ inputs.deploy || inputs.functionality || inputs.load }}
+    if: ${{ $always() && (inputs.deploy || inputs.functionality || inputs.load) }}
+    needs: [deploy-local, deploy-remote, deploy-already]
     runs-on: ubuntu-latest
     steps:
       - name: Check
