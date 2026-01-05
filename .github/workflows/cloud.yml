@@ -22,15 +22,15 @@ on:
         type: boolean
         default: false
       aws-access-key-id:
-        description: 'AWS Access Key ID for your lab account'
+        description: 'AWS Access Key ID'
         required: false
         type: string
       aws-secret-access-key:
-        description: 'AWS Secret Access Key for your lab account'
+        description: 'AWS Secret Access Key'
         required: false
         type: string
       aws-session-token:
-        description: 'AWS Session Token for your lab account'
+        description: 'AWS Session Token'
         required: false
         type: string
 
@@ -75,10 +75,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+  load-check:
+    name: Test Load Config
+    runs-on: ubuntu-latest
+    if: ${{ inputs.load }}
+    steps:
+      - name: Check
+        uses: actions/github-script@v6
+        env:
+          BRANCH: ${{ github.ref_name }}
+          CHECK_VALID_BRANCH: ${{ github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+        with:
+          script: |
+            const branch = process.env.BRANCH
+            const validBranch = process.env.CHECK_VALID_BRANCH
+            if (validBranch != 'true') {
+              core.setFailed('Load tests can only be run on a stage-3 branch, current branch: ' + branch);
+            }
+
   load:
     name: Test Load
     runs-on: ubuntu-latest
-    if: ${{ inputs.load }}
+    if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
