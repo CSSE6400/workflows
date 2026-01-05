@@ -24,12 +24,6 @@ jobs:
         id: validate
         run: tofu validate
 
-      - uses: terraform-linters/setup-tflint@v6
-        name: Setup TFLint
-        with:
-          tflint_version: v0.52.0
-          cache: true
-
       - name: TFLint config
         id: tflint-config
         shell: bash
@@ -49,6 +43,12 @@ jobs:
             source  = "github.com/terraform-linters/tflint-ruleset-aws"
           }
           EOF
+
+      - uses: terraform-linters/setup-tflint@v6
+        name: Setup TFLint
+        with:
+          tflint_version: v0.52.0
+          cache: true
 
       - name: Show version
         run: tflint --version
