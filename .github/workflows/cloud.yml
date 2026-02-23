@@ -47,7 +47,7 @@ jobs:
   deploy-local:
     name: Build (Stage 1)
     if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -69,7 +69,7 @@ jobs:
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -80,15 +80,16 @@ jobs:
           aws-access-key-id: ${{ steps.creds.outputs.aws-access-key-id }}
           aws-secret-access-key: ${{ steps.creds.outputs.aws-secret-access-key }}
           aws-session-token: ${{ steps.creds.outputs.aws-session-token }}
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+      
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: fmt check
         id: fmt
-        run: tofu fmt -check
+        run: terraform fmt -check
 
       - name: Init
-        run: tofu init
+        run: terraform init
 
       - name: Collect deployed URL
         id: collect
@@ -99,7 +100,7 @@ jobs:
   deploy-external:
     name: Deployed External (via user)
     if: ${{ inputs.deploy != true && inputs.deployed-url != '' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -113,7 +114,7 @@ jobs:
     name: Check Endpoint
     if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) }}
     needs: [deploy-local, deploy-remote, deploy-external]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     outputs:
       endpoint: ${{ steps.check.outputs.endpoint }}
     steps:
@@ -144,7 +145,7 @@ jobs:
 
   functionality:
     name: Test Functionality
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     if: ${{ inputs.functionality }}
     needs: deploy-check
     steps:
@@ -153,7 +154,7 @@ jobs:
 
   load-check:
     name: Check Load
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     if: ${{ inputs.load }}
     needs: deploy-check
     steps:
@@ -172,7 +173,7 @@ jobs:
 
   load:
     name: Test Load
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: [functionality, load-check]
     steps:
@@ -183,7 +184,7 @@ jobs:
     name: Tear Down (Stage 2 & 3)
     if: ${{ always() && inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
     needs: [deploy-remote, functionality, load]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, X64]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
