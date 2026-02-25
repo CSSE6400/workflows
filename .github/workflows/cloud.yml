@@ -86,7 +86,7 @@ jobs:
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -117,7 +117,7 @@ jobs:
   deploy-external:
     name: Deployed External (via user)
     if: ${{ inputs.deploy != true && inputs.deployed-url != '' }}
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -131,7 +131,7 @@ jobs:
     name: Check Endpoint
     if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) }}
     needs: [deploy-local, deploy-remote, deploy-external]
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.check.outputs.endpoint }}
     steps:
@@ -162,7 +162,7 @@ jobs:
 
   functionality:
     name: Test Functionality
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ inputs.functionality }}
     needs: deploy-check
     steps:
@@ -171,7 +171,7 @@ jobs:
 
   load-check:
     name: Check Load
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ inputs.load }}
     needs: deploy-check
     steps:
@@ -190,7 +190,7 @@ jobs:
 
   load:
     name: Test Load
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: [functionality, load-check]
     steps:
@@ -201,7 +201,7 @@ jobs:
     name: Tear Down (Stage 2 & 3)
     if: ${{ always() && inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
     needs: [deploy-remote, functionality, load]
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout
         uses: actions/checkout@v6

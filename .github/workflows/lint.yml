@@ -5,13 +5,13 @@ on:
 
 jobs:
   python:
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
   terraform:
-    runs-on: [self-hosted, Linux, X64, amazon]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -26,14 +26,14 @@ jobs:
 
       - name: fmt check
         id: fmt
-        run: tofu fmt -check
+        run: terraform fmt -check
 
       - name: Init
-        run: tofu init
+        run: terraform init
 
       - name: Validate
         id: validate
-        run: tofu validate
+        run: terraform validate
 
       - name: TFLint config
         id: tflint-config
