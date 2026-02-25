@@ -16,8 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v1
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: fmt check
         id: fmt
