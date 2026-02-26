@@ -76,14 +76,14 @@ jobs:
           private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
           owner: CSSE6400
           repositories: |
-            "csse6400/${assignment}-tests"
+            "csse6400/${{ inputs.assignment }}-tests"
       
       - name: Clone tests
         uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
-          repository: "csse6400/${assignment}-tests"
+          repository: "csse6400/${{ inputs.assignment }}-tests"
           path: marking
 
       - name: Run unit tests locally
