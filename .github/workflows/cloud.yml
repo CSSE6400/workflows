@@ -91,6 +91,8 @@ jobs:
 
       - name: Run tests
         shell: bash
+        env:
+          pytest_github_report: true
         run: |
           echo "running tests...."
           cd marking && poetry run pytest --report-log report.log tests
