@@ -95,7 +95,7 @@ jobs:
           pytest_github_report: true
         run: |
           echo "running tests...."
-          cd marking && poetry install && poetry run pytest tests
+          cd marking && poetry install && poetry run pytest functionality
 
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
