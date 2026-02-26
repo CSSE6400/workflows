@@ -93,6 +93,8 @@ jobs:
         shell: bash
         env:
           pytest_github_report: true
+          pytest_report_title: ":stethoscope: Functionality Tests"
+          pytest_verbosity: 2
         run: |
           echo "running tests...."
           cd marking && poetry install && poetry run pytest functionality
