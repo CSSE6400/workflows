@@ -76,7 +76,7 @@ jobs:
           private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
           owner: CSSE6400
           repositories: |
-            csse6400/${{ inputs.assignment }}-tests
+            ${{ inputs.assignment }}-tests
       
       - name: Clone tests
         uses: actions/checkout@v6
