@@ -86,11 +86,14 @@ jobs:
           repository: csse6400/${{ inputs.assignment }}-tests
           path: marking
 
-      - name: Run unit tests locally
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Run tests
         shell: bash
         run: |
           echo "running tests...."
-          cd marking && python -m pytest --report-log report.log tests
+          cd marking && poetry run pytest --report-log report.log tests
 
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
