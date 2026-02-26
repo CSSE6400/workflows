@@ -248,7 +248,7 @@ jobs:
           poetry run pytest functionality
 
   load-check:
-    name: Check Load
+    name: Check Load (Stage 3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: deploy-check
@@ -267,7 +267,7 @@ jobs:
             }
 
   load:
-    name: Test Load
+    name: Test Load (Stage 3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: [functionality, load-check]
