@@ -89,6 +89,11 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1
 
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd marking && poetry install
+
       - name: Run tests
         shell: bash
         env:
@@ -97,7 +102,7 @@ jobs:
           pytest_verbosity: 2
         run: |
           echo "running tests...."
-          cd marking && poetry install && poetry run pytest functionality
+          cd marking && poetry run pytest functionality
 
   deploy-remote:
     name: Build & Deploy (Stage 2 & 3)
@@ -120,6 +125,19 @@ jobs:
       - name: fmt check
         id: fmt
         run: terraform fmt -check
+
+      - name: Execute before script if it exists
+        run: |
+          SCRIPT_PATH="./before.sh"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "::notice file=$SCRIPT_PATH::Script found, executing."
+            # Make the script executable and run it
+            chmod +x "$SCRIPT_PATH"
+            ./before.sh
+          else
+            echo "::warning file=$SCRIPT_PATH::Script not found, skipping execution."
+          fi
+        shell: bash
 
       - name: Init
         run: terraform init
@@ -182,8 +200,54 @@ jobs:
     if: ${{ inputs.functionality }}
     needs: deploy-check
     steps:
-      - name: Checkout
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - name: Build
+        shell: bash
+        timeout-minutes: 20
+        run: |
+          ./local.sh
+
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.CLOUD_ASSIGNMENT_APP_ID }}
+          private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
+          owner: CSSE6400
+          repositories: |
+            ${{ inputs.assignment }}-tests
+      
+      - name: Clone tests
         uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          repository: csse6400/${{ inputs.assignment }}-tests
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          poetry install
+
+      - name: Run tests
+        shell: bash
+        env:
+          pytest_github_report: true
+          pytest_report_title: ":stethoscope: Functionality Tests"
+          pytest_verbosity: 2
+        run: |
+          echo "running tests...."
+          poetry run pytest functionality
 
   load-check:
     name: Check Load
