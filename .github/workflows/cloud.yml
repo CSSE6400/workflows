@@ -45,7 +45,7 @@ on:
 
 jobs:
   deploy-local:
-    name: Build (Stage 1)
+    name: Build & Test (Stage 1)
     if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     outputs:
@@ -149,8 +149,8 @@ jobs:
           echo "endpoint=$(cat ./api.txt)" >> "$GITHUB_OUTPUT"
 
   deploy-external:
-    name: Deployed External (via user)
-    if: ${{ inputs.deploy != true && inputs.deployed-url != '' }}
+    name: Deployed External (via user) (Stage 2 & 3)
+    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
@@ -162,9 +162,9 @@ jobs:
           echo "endpoint=${{ inputs.deployed-url }}" >> "$GITHUB_OUTPUT"
 
   deploy-check:
-    name: Check Endpoint
-    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) }}
-    needs: [deploy-local, deploy-remote, deploy-external]
+    name: Check Endpoint (Stage 2 & 3)
+    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality || inputs.load) && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: [deploy-remote, deploy-external]
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.check.outputs.endpoint }}
@@ -173,18 +173,16 @@ jobs:
         id: check
         uses: actions/github-script@v6
         env:
-          ENDPOINT_LOCAL: ${{ needs.deploy-local.outputs.endpoint }}
           ENDPOINT_REMOTE: ${{ needs.deploy-remote.outputs.endpoint }}
           ENDPOINT_EXTERNAL: ${{ needs.deploy-external.outputs.endpoint }}
         with:
           script: |
-            const local = process.env.ENDPOINT_LOCAL;
             const remote = process.env.ENDPOINT_REMOTE;
             const external = process.env.ENDPOINT_EXTERNAL;
             
-            console.log('local (' + local + ') remote (' + remote + ') external (' + external + ')');
+            console.log('remote (' + remote + ') external (' + external + ')');
             
-            const endpoint = local || remote || external;
+            const endpoint = remote || external;
             if (endpoint === undefined || endpoint == '' ) {
               core.setFailed('Do not have a valid test endpoint');
             }
@@ -197,7 +195,7 @@ jobs:
   functionality:
     name: Test Functionality
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ inputs.functionality }}
+    if: ${{ inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: deploy-check
     steps:
       - name: Setup node
@@ -252,7 +250,7 @@ jobs:
   load-check:
     name: Check Load
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ inputs.load }}
+    if: ${{ inputs.load && (github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: deploy-check
     steps:
       - name: Check
@@ -279,7 +277,7 @@ jobs:
 
   destroy-deploy:
     name: Tear Down (Stage 2 & 3)
-    if: ${{ always() && inputs.deploy && github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     needs: [deploy-remote, functionality, load]
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
