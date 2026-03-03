@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
-          echo "> The functionality tests are an indication of your solution but do not represent your grade." >> $GITHUB_STEP_SUMMARY
+          echo "> The functionality tests provide feedback on your solution but are not your grade for the stage." >> $GITHUB_STEP_SUMMARY
 
       - name: Run tests
         shell: bash
