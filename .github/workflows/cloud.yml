@@ -235,8 +235,8 @@ jobs:
   functionality:
     name: Test Functionality
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    needs: deploy-check
+    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: [deploy-check]
     steps:
       - name: Setup node
         uses: actions/setup-node@v6
