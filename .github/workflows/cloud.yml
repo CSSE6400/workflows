@@ -357,6 +357,10 @@ jobs:
             const awsSessionToken = process.env.AWS_SESSION_TOKEN;
             
             if (awsAccessKeyID === undefined || awsAccessKeyID == '' || awsSecretAccessKey === undefined || awsSecretAccessKey == '' || awsSessionToken === undefined || awsSessionToken == '') {
+              await core.summary.addRaw(`
+                  > [!CAUTION]
+                  > AWS credentials were not provided to the workflow
+                `).write();  
               core.setFailed('AWS Credentials have not been provided');
             }
       
