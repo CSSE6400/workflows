@@ -14,3 +14,22 @@ jobs:
         shell: bash
         run: |
           echo "This lint workflow is a WIP for Stage-2"
+
+  ai:
+    name: AI
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Document AI usage
+        shell: bash
+        run: |
+            FILE_AI="AI.md"
+            if [ -f "$FILE_AI" ]; then
+              echo "# AI Declaration" >> $GITHUB_STEP_SUMMARY
+              cat "$FILE_AI" >> $GITHUB_STEP_SUMMARY
+            else 
+              echo "> [!IMPORTANT]" >> $GITHUB_STEP_SUMMARY
+              echo "> No AI usage declared or declaration is missing. If you did not use AI tools then this can be ignored." >> $GITHUB_STEP_SUMMARY
+            fi
