@@ -27,7 +27,7 @@ jobs:
         run: |
             FILE_AI="AI.md"
             if [ -f "$FILE_AI" ]; then
-              echo "AI Declaration:" >> $GITHUB_STEP_SUMMARY
+              echo "# AI Declaration" >> $GITHUB_STEP_SUMMARY
               cat "$FILE_AI" >> $GITHUB_STEP_SUMMARY
             else 
               echo "> [!IMPORTANT]" >> $GITHUB_STEP_SUMMARY
