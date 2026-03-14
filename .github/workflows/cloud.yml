@@ -292,7 +292,7 @@ jobs:
     name: Destroy (Stage 2/3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    needs: [deploy-remote]
+    needs: [deploy-remote, functionality]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
