@@ -31,5 +31,5 @@ jobs:
               cat "$FILE_AI" >> $GITHUB_STEP_SUMMARY
             else 
               echo "> [!IMPORTANT]" >> $GITHUB_STEP_SUMMARY
-              echo "> No AI usage declared or declaration is missing." >> $GITHUB_STEP_SUMMARY
+              echo "> No AI usage declared or declaration is missing. If you did not use AI tools then this can be ignored." >> $GITHUB_STEP_SUMMARY
             fi
