@@ -67,6 +67,7 @@ jobs:
         shell: bash
         timeout-minutes: 20
         run: |
+          chmod +x local.sh
           ./local.sh
 
       - uses: actions/create-github-app-token@v2
@@ -74,7 +75,7 @@ jobs:
         with:
           app-id: ${{ vars.CLOUD_ASSIGNMENT_APP_ID }}
           private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
-          owner: CSSE6400
+          owner: CSSE6400P
           repositories: |
             ${{ inputs.assignment }}-tests
       
