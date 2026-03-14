@@ -110,7 +110,7 @@ jobs:
           cd marking && poetry run pytest functionality
 
   deploy-remote:
-    name: Build & Deploy & Test (Stage 2/3)
+    name: Build & Deploy (Stage 2/3)
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
@@ -146,14 +146,22 @@ jobs:
         run: terraform init
 
       - name: Plan
-        run: terraform plan -out=tfplan
+        run: |
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
 
       - uses: borchero/terraform-plan-comment@v2
         with:
           token: "${{ github.token }}"
-          planfile: "tfplan"
+          planfile: "tfplan.binary"
           header: 📝 Terraform Plan
           skip-comment: true
+
+      - name: Upload terraform plan (json)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan.json
+          path: tfplan.json
 
       - name: Apply
         run: terraform apply -auto-approve
