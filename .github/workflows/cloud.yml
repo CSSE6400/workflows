@@ -75,7 +75,7 @@ jobs:
         with:
           app-id: ${{ vars.CLOUD_ASSIGNMENT_APP_ID }}
           private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
-          owner: CSSE6400P
+          owner: CSSE6400
           repositories: |
             ${{ inputs.assignment }}-tests
       
