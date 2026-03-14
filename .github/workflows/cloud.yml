@@ -177,7 +177,7 @@ jobs:
         run: terraform apply -auto-approve
       
       - name: Upload terraform state
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: terraform.tfstate
           path: terraform.tfstate
@@ -211,7 +211,7 @@ jobs:
     steps:
       - name: Check
         id: check
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         env:
           ENDPOINT_REMOTE: ${{ needs.deploy-remote.outputs.endpoint }}
           ENDPOINT_EXTERNAL: ${{ needs.deploy-external.outputs.endpoint }}
@@ -317,7 +317,6 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: terraform.tfstate
-          path: terraform.tfstate
 
       - name: Init
         run: terraform init
