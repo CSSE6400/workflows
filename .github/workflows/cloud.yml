@@ -284,6 +284,7 @@ jobs:
           pytest_github_report: true
           pytest_report_title: ":stethoscope: Functionality Tests"
           pytest_verbosity: 2
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
         run: |
           echo "running tests...."
           cd marking && poetry run pytest functionality
