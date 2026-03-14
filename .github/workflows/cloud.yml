@@ -137,6 +137,10 @@ jobs:
             const awsSessionToken = process.env.AWS_SESSION_TOKEN;
             
             if (awsAccessKeyID === undefined || awsAccessKeyID == '' || awsSecretAccessKey === undefined || awsSecretAccessKey == '' || awsSessionToken === undefined || awsSessionToken == '') {
+              await core.summary.addRaw(`
+                > [!CAUTION]
+                > AWS credentials were not provided to the workflow
+                `).write();    
               core.setFailed('AWS Credentials have not been provided');
             }
       
@@ -284,6 +288,18 @@ jobs:
         with:
           node-version: 24
 
+      - name: Check
+        uses: actions/github-script@v8
+        env:
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
+        with:
+          script: |
+            const endpoint = process.env.TEST_HOST;
+            
+            if (endpoint === undefined || endpoint == '' ) {
+              core.setFailed('Do not have a valid test endpoint');
+            }
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.13.12'
@@ -358,8 +374,8 @@ jobs:
             
             if (awsAccessKeyID === undefined || awsAccessKeyID == '' || awsSecretAccessKey === undefined || awsSecretAccessKey == '' || awsSessionToken === undefined || awsSessionToken == '') {
               await core.summary.addRaw(`
-                  > [!CAUTION]
-                  > AWS credentials were not provided to the workflow
+                > [!CAUTION]
+                > AWS credentials were not provided to the workflow
                 `).write();  
               core.setFailed('AWS Credentials have not been provided');
             }
