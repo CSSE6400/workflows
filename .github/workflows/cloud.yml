@@ -114,6 +114,9 @@ jobs:
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        
       - name: Setup node
         uses: actions/setup-node@v6
         with:
