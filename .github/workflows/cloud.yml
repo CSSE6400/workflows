@@ -108,3 +108,58 @@ jobs:
         run: |
           echo "running tests...."
           cd marking && poetry run pytest functionality
+
+  deploy-remote:
+    name: Build & Deploy & Test (Stage 2/3)
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    runs-on: [self-hosted, Linux, X64, amazon, student]
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5.1.1
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ inputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+          aws-session-token: ${{ inputs.aws-session-token }}
+      
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: fmt check
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Execute before script if it exists
+        run: |
+          SCRIPT_PATH="./before.sh"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "::notice file=$SCRIPT_PATH::Script found, executing."
+            # Make the script executable and run it
+            chmod +x "$SCRIPT_PATH"
+            ./before.sh
+          else
+            echo "::warning file=$SCRIPT_PATH::Script not found, skipping execution."
+          fi
+        shell: bash
+
+      - name: Init
+        run: terraform init
+
+      - name: Plan
+        run: terraform plan -out=tfplan
+
+      - uses: borchero/terraform-plan-comment@v2
+        with:
+          token: "${{ github.token }}"
+          planfile: "tfplan"
+          header: 📝 Terraform Plan
+          skip-comment: true
+
+      - name: Apply
+        run: terraform apply -auto-approve
+      
+      - name: Upload terraform state
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform.tfstate
+          path: terraform.tfstate
