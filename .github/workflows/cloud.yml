@@ -114,6 +114,11 @@ jobs:
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5.1.1
         with:
@@ -123,7 +128,7 @@ jobs:
           aws-session-token: ${{ inputs.aws-session-token }}
       
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: fmt check
         id: fmt
