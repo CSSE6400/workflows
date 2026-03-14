@@ -188,6 +188,30 @@ jobs:
         run: |
           echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
 
+  deploy-cost:
+    name: Deploy Cost Estimate (Stage 2/3)
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    needs: [deploy-remote]
+    steps:
+      - name: Get State
+        uses: actions/download-artifact@v8
+        with:
+          name: tfplan.json
+      
+      - name: Run OpenInfraQuote
+        uses: terrateamio/openinfraquote-action@v1
+        with:
+          plan-path: tfplan.json
+          comment-on-pr: false
+      
+      - name: Output costings
+        shell: bash
+        run: |
+          echo "> [!Tip]" >> $GITHUB_STEP_SUMMARY
+          echo "> An estimation of how much your solution would cost." >> $GITHUB_STEP_SUMMARY
+          cat oiq-comment.md >> $GITHUB_STEP_SUMMARY
+
   deploy-external:
     name: Deployed External (via user) (Stage 2 & 3)
     if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
