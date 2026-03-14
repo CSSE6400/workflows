@@ -67,6 +67,7 @@ jobs:
         shell: bash
         timeout-minutes: 20
         run: |
+          chmod +x local.sh
           ./local.sh
 
       - uses: actions/create-github-app-token@v2
