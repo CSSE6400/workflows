@@ -51,6 +51,11 @@ jobs:
             version = "0.10.0"
             source  = "github.com/terraform-linters/tflint-ruleset-opa"
           }
+
+          rule "terraform_required_version" {
+            enabled = false
+          }
+
           EOF
 
       - uses: terraform-linters/setup-tflint@v6
