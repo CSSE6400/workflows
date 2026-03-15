@@ -22,7 +22,7 @@ jobs:
             FILE_LOCAL="local.sh"
             if ! grep -q "docker" "$FILE_LOCAL"; then
               echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
-              echo "> No docker usage detected in local.sh, see spec: 'The local.sh script must launch your container with port 8080'" >> $GITHUB_STEP_SUMMARY
+              echo "> No docker usage detected in local.sh, see spec section 4.1: 'The local.sh script must launch your container with port 8080'" >> $GITHUB_STEP_SUMMARY
             fi
 
   terraform:
