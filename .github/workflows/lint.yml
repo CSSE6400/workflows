@@ -4,7 +4,29 @@ on:
   workflow_call:
 
 jobs:
+  local:
+    if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check for docker cli usage in local.sh
+        shell: bash
+        run: |
+            FILE_LOCAL="local.sh"
+            if ! [[ grep -q "docker" "$FILE_LOCAL" ]]; then
+              echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+              echo "> No docker usage detected in local.sh, see spec: 'The local.sh script must launch your container with port 8080'" >> $GITHUB_STEP_SUMMARY
+            fi
+
   terraform:
+    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
