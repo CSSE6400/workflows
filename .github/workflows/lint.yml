@@ -56,6 +56,10 @@ jobs:
             enabled = false
           }
 
+          rule "terraform_naming_convention" {
+            enabled = true
+          }
+
           EOF
 
       - uses: terraform-linters/setup-tflint@v6
