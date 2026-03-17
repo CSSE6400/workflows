@@ -107,7 +107,7 @@ jobs:
           pytest_verbosity: 2
         run: |
           echo "running tests...."
-          cd marking && poetry run pytest functionality
+          cd marking && poetry run pytest functionality --timeout 15
 
   deploy-remote:
     name: Build & Deploy (Stage 2/3)
