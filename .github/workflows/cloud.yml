@@ -107,4 +107,309 @@ jobs:
           pytest_verbosity: 2
         run: |
           echo "running tests...."
+          cd marking && poetry run pytest functionality --timeout 15
+
+  deploy-remote:
+    name: Build & Deploy (Stage 2/3)
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    runs-on: [self-hosted, Linux, X64, amazon, student]
+    outputs:
+      endpoint: ${{ steps.collect.outputs.endpoint }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check
+        uses: actions/github-script@v8
+        env:
+          AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ inputs.aws-session-token }}
+        with:
+          script: |
+            const awsAccessKeyID = process.env.AWS_ACCESS_KEY_ID;
+            const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+            const awsSessionToken = process.env.AWS_SESSION_TOKEN;
+            
+            if (awsAccessKeyID === undefined || awsAccessKeyID == '' || awsSecretAccessKey === undefined || awsSecretAccessKey == '' || awsSessionToken === undefined || awsSessionToken == '') {
+              await core.summary.addRaw(`
+              > [!CAUTION]
+              > AWS credentials were not provided to the workflow
+                `).write();    
+              core.setFailed('AWS Credentials have not been provided');
+            }
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ inputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+          aws-session-token: ${{ inputs.aws-session-token }}
+      
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: fmt check
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Execute before script if it exists
+        run: |
+          SCRIPT_PATH="./before.sh"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "::notice file=$SCRIPT_PATH::Script found, executing."
+            # Make the script executable and run it
+            chmod +x "$SCRIPT_PATH"
+            ./before.sh
+          else
+            echo "::warning file=$SCRIPT_PATH::Script not found, skipping execution."
+          fi
+        shell: bash
+
+      - name: Init
+        run: terraform init
+
+      - name: Plan
+        run: |
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - uses: borchero/terraform-plan-comment@v2
+        with:
+          token: "${{ github.token }}"
+          planfile: "tfplan.binary"
+          header: 📝 Terraform Plan
+          skip-comment: true
+
+      - name: Upload terraform plan (json)
+        uses: actions/upload-artifact@v6
+        with:
+          name: tfplan.json
+          path: tfplan.json
+
+      - name: Apply
+        run: terraform apply -auto-approve
+      
+      - name: Upload terraform state
+        uses: actions/upload-artifact@v6
+        with:
+          name: terraform.tfstate
+          path: terraform.tfstate
+
+      - name: Collect deployed URL
+        id: collect
+        shell: bash
+        run: |
+          echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
+
+  # # todo(mh): Not happy with this yet, the defaults seem misleading.  
+  # deploy-cost:
+  #   name: Deploy Cost Estimate (Stage 2/3)
+  #   if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+  #   runs-on: [self-hosted, Linux, X64, amazon, generic]
+  #   needs: [deploy-remote]
+  #   steps:
+  #     - name: Get State
+  #       uses: actions/download-artifact@v8
+  #       with:
+  #         name: tfplan.json
+      
+  #     - name: Run OpenInfraQuote
+  #       uses: terrateamio/openinfraquote-action@v1
+  #       with:
+  #         plan-path: tfplan.json
+  #         comment-on-pr: false
+      
+  #     - name: Output costings
+  #       shell: bash
+  #       run: |
+  #         echo "> [!Tip]" >> $GITHUB_STEP_SUMMARY
+  #         echo "> An estimation of how much your solution would cost." >> $GITHUB_STEP_SUMMARY
+  #         cat oiq-comment.md >> $GITHUB_STEP_SUMMARY
+
+  deploy-external:
+    name: Deployed External (via user) (Stage 2 & 3)
+    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    outputs:
+      endpoint: ${{ steps.collect.outputs.endpoint }}
+    steps:
+      - name: Collect deployed URL
+        shell: bash
+        id: collect
+        run: |
+          echo "endpoint=${{ inputs.deployed-url }}" >> "$GITHUB_OUTPUT"
+
+  deploy-check:
+    name: Check Endpoint (Stage 2 & 3)
+    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality ) && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: [deploy-remote, deploy-external]
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    outputs:
+      endpoint: ${{ steps.check.outputs.endpoint }}
+    steps:
+      - name: Check
+        id: check
+        uses: actions/github-script@v8
+        env:
+          ENDPOINT_REMOTE: ${{ needs.deploy-remote.outputs.endpoint }}
+          ENDPOINT_EXTERNAL: ${{ needs.deploy-external.outputs.endpoint }}
+        with:
+          script: |
+            const remote = process.env.ENDPOINT_REMOTE;
+            const external = process.env.ENDPOINT_EXTERNAL;
+            
+            console.log('remote (' + remote + ') external (' + external + ')');
+            
+            const endpoint = remote || external;
+            if (endpoint === undefined || endpoint == '' ) {
+              core.setFailed('Do not have a valid test endpoint');
+            }
+            
+            // todo: check that the endpoint is a correct url
+            
+            console.log('Test Endpoint: ' + endpoint);
+            core.setOutput('endpoint', endpoint);
+
+  functionality:
+    name: Test Functionality
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: [deploy-check]
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check
+        uses: actions/github-script@v8
+        env:
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
+        with:
+          script: |
+            const endpoint = process.env.TEST_HOST;
+            
+            if (endpoint === undefined || endpoint == '' ) {
+              core.setFailed('Do not have a valid test endpoint');
+            }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.CLOUD_ASSIGNMENT_APP_ID }}
+          private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
+          owner: CSSE6400
+          repositories: |
+            ${{ inputs.assignment }}-tests
+      
+      - name: Clone tests
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          repository: csse6400/${{ inputs.assignment }}-tests
+          path: marking
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd marking && poetry install
+
+      - name: Warning
+        shell: bash
+        run: |
+          echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+          echo "> The functionality tests provide feedback on your solution but are not your grade for the stage." >> $GITHUB_STEP_SUMMARY
+
+      - name: Run tests
+        shell: bash
+        env:
+          pytest_github_report: true
+          pytest_report_title: ":stethoscope: Functionality Tests"
+          pytest_verbosity: 2
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
+        run: |
+          echo "running tests...."
           cd marking && poetry run pytest functionality
+
+  deploy-destroy:
+    name: Destroy (Stage 2/3)
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    needs: [deploy-remote, functionality]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check
+        uses: actions/github-script@v8
+        env:
+          AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ inputs.aws-session-token }}
+        with:
+          script: |
+            const awsAccessKeyID = process.env.AWS_ACCESS_KEY_ID;
+            const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+            const awsSessionToken = process.env.AWS_SESSION_TOKEN;
+            
+            if (awsAccessKeyID === undefined || awsAccessKeyID == '' || awsSecretAccessKey === undefined || awsSecretAccessKey == '' || awsSessionToken === undefined || awsSessionToken == '') {
+              await core.summary.addRaw(`
+              > [!CAUTION]
+              > AWS credentials were not provided to the workflow
+                `).write();  
+              core.setFailed('AWS Credentials have not been provided');
+            }
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ inputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+          aws-session-token: ${{ inputs.aws-session-token }}
+      
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Get State
+        uses: actions/download-artifact@v8
+        with:
+          name: terraform.tfstate
+
+      - name: Init
+        run: terraform init
+
+      - name: Plan
+        run: |
+          terraform plan -destroy -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - uses: borchero/terraform-plan-comment@v2
+        with:
+          token: "${{ github.token }}"
+          planfile: "tfplan.binary"
+          header: 📝 Terraform Plan (Destroy)
+          skip-comment: true
+
+      - name: Destroy
+        run: terraform destroy -auto-approve
