@@ -29,14 +29,14 @@ jobs:
           owner: CSSE6400
           repositories: |
             ${{ inputs.assignment }}-tests
-            ${{ inputs.repository }}
+            ${{ inputs.assignment }}-${{ inputs.repository }}
 
       - name: Checkout student code
         uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
-          repository: csse6400/${{ inputs.repository }}
+          repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
           ref: ${{ inputs.commit }}
 
       - name: Setup node
