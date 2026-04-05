@@ -38,6 +38,7 @@ jobs:
           persist-credentials: false
           repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
           ref: ${{ inputs.commit }}
+          path: submission
 
       - name: Setup node
         uses: actions/setup-node@v6
@@ -52,6 +53,7 @@ jobs:
         shell: bash
         timeout-minutes: 20
         run: |
+          cd submission
           chmod +x local.sh
           ./local.sh
       
