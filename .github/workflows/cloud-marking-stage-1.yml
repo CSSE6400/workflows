@@ -87,4 +87,4 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: report.xml
-          path: report.xml
+          path: marking/report.xml
