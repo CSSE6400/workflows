@@ -207,6 +207,12 @@ jobs:
         shell: bash
         run: |
           echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
+      
+      - name: Sleep for 10 minutes
+        shell: bash
+        run: |
+          echo 'Sleeping for 10 minutes to allow resources to warmup...'
+          sleep 10m
 
   # # todo(mh): Not happy with this yet, the defaults seem misleading.  
   # deploy-cost:
