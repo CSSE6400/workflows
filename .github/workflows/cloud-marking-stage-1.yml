@@ -18,7 +18,7 @@ on:
 
 jobs:
   mark:
-    name: Build & Test
+    name: Stage 1 Mark
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
       - uses: actions/create-github-app-token@v3
@@ -51,7 +51,7 @@ jobs:
 
       - name: Build
         shell: bash
-        timeout-minutes: 20
+        timeout-minutes: 10
         run: |
           cd submission
           chmod +x local.sh
@@ -78,13 +78,14 @@ jobs:
         env:
           pytest_github_report: true
           pytest_report_title: ":stethoscope: Functionality Tests"
-          pytest_verbosity: 2
+          pytest_verbosity: 1
         run: |
           echo "running tests...."
           cd marking && poetry run pytest functionality --timeout 15 --junit-xml=report.xml
       
       - name: Upload test report
         uses: actions/upload-artifact@v6
+        if: always()
         with:
           name: report.xml
           path: marking/report.xml
