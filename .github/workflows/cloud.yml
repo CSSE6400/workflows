@@ -328,7 +328,7 @@ jobs:
           cd marking && poetry run pytest functionality
 
   load:
-    name: Test Load
+    name: Test Scalability
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ always() && inputs.load && github.ref_name == 'stage-3' }}
     needs: [deploy-check, functionality]
@@ -389,7 +389,7 @@ jobs:
     name: Destroy (Stage 2/3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    needs: [deploy-remote, functionality]
+    needs: [deploy-remote, functionality, load]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
