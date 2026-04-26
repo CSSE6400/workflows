@@ -4,8 +4,20 @@ on:
   workflow_call:
 
 jobs:
+  invalid:
+    name: Invalid Branch Check
+    if: ${{ !(github.ref_name == 'stage-1' || github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    steps:
+      - name: Invalid Branch Check
+        shell: bash
+        run: |
+          echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+          echo "> This is not a valid branch and this will not be credited as a submission." >> $GITHUB_STEP_SUMMARY
+          exit 1
+
   local:
-    if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
+    if: ${{ github.ref_name == 'stage-1' }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
@@ -26,7 +38,7 @@ jobs:
             fi
 
   terraform:
-    if: ${{ github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/') }}
+    if: ${{ github.ref_name == 'stage-2' || github.ref_name == 'stage-3' }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository

@@ -46,7 +46,7 @@ on:
 jobs:
   deploy-local:
     name: Build & Test (Stage 1)
-    if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
+    if: ${{ github.ref_name == 'stage-1' }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
       - name: Checkout
@@ -111,8 +111,9 @@ jobs:
 
   deploy-remote:
     name: Build & Deploy (Stage 2/3)
-    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
+    timeout-minutes: 60
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -176,6 +177,9 @@ jobs:
         run: terraform init
 
       - name: Plan
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
         run: |
           terraform plan -out=tfplan.binary
           terraform show -json tfplan.binary > tfplan.json
@@ -194,6 +198,9 @@ jobs:
           path: tfplan.json
 
       - name: Apply
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
         run: terraform apply -auto-approve
       
       - name: Upload terraform state
@@ -214,34 +221,9 @@ jobs:
           echo 'Sleeping for 10 minutes to allow resources to warmup...'
           sleep 10m
 
-  # # todo(mh): Not happy with this yet, the defaults seem misleading.  
-  # deploy-cost:
-  #   name: Deploy Cost Estimate (Stage 2/3)
-  #   if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-  #   runs-on: [self-hosted, Linux, X64, amazon, generic]
-  #   needs: [deploy-remote]
-  #   steps:
-  #     - name: Get State
-  #       uses: actions/download-artifact@v8
-  #       with:
-  #         name: tfplan.json
-      
-  #     - name: Run OpenInfraQuote
-  #       uses: terrateamio/openinfraquote-action@v1
-  #       with:
-  #         plan-path: tfplan.json
-  #         comment-on-pr: false
-      
-  #     - name: Output costings
-  #       shell: bash
-  #       run: |
-  #         echo "> [!Tip]" >> $GITHUB_STEP_SUMMARY
-  #         echo "> An estimation of how much your solution would cost." >> $GITHUB_STEP_SUMMARY
-  #         cat oiq-comment.md >> $GITHUB_STEP_SUMMARY
-
   deploy-external:
     name: Deployed External (via user) (Stage 2 & 3)
-    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
@@ -254,7 +236,7 @@ jobs:
 
   deploy-check:
     name: Check Endpoint (Stage 2 & 3)
-    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality ) && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality ) && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     needs: [deploy-remote, deploy-external]
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
@@ -286,7 +268,7 @@ jobs:
   functionality:
     name: Test Functionality
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     needs: [deploy-check]
     steps:
       - name: Setup node
@@ -352,11 +334,68 @@ jobs:
           echo "running tests...."
           cd marking && poetry run pytest functionality
 
+  load:
+    name: Test Scalability
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    if: ${{ always() && inputs.load && github.ref_name == 'stage-3' }}
+    needs: [deploy-check, functionality]
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Check
+        uses: actions/github-script@v8
+        env:
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
+        with:
+          script: |
+            const endpoint = process.env.TEST_HOST;
+            
+            if (endpoint === undefined || endpoint == '' ) {
+              core.setFailed('Do not have a valid test endpoint');
+            }
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.CLOUD_ASSIGNMENT_APP_ID }}
+          private-key: ${{ secrets.CLOUD_ASSIGNMENT_PRIVATE_KEY }}
+          owner: CSSE6400
+          repositories: |
+            ${{ inputs.assignment }}-tests
+      
+      - name: Clone tests
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          repository: csse6400/${{ inputs.assignment }}-tests
+          path: marking
+      
+      - name: Install K6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Warning
+        shell: bash
+        run: |
+          echo "> [!WARNING]" >> $GITHUB_STEP_SUMMARY
+          echo "> The load tests provide feedback on your solution but are not your grade for the stage." >> $GITHUB_STEP_SUMMARY
+
+      - name: Install dependencies
+        shell: bash
+        env:
+          K6_SUMMARY_MODE: compact
+          TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
+        run: |
+          cd marking/scalability && ./run.sh >> $GITHUB_STEP_SUMMARY
+
   deploy-destroy:
     name: Destroy (Stage 2/3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
-    needs: [deploy-remote, functionality]
+    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
+    needs: [deploy-remote, functionality, load]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
