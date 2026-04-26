@@ -5,6 +5,7 @@ on:
 
 jobs:
   invalid:
+    name: Invalid Branch Check
     if: ${{ !(github.ref_name == 'stage-1' || github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:

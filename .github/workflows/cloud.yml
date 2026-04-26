@@ -113,7 +113,7 @@ jobs:
     name: Build & Deploy (Stage 2/3)
     if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
-    timeout-minutes: 40
+    timeout-minutes: 60
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
     steps:
@@ -215,11 +215,11 @@ jobs:
         run: |
           echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
       
-      - name: Sleep for 5 minutes
+      - name: Sleep for 10 minutes
         shell: bash
         run: |
-          echo 'Sleeping for 5 minutes to allow resources to warmup...'
-          sleep 5m
+          echo 'Sleeping for 10 minutes to allow resources to warmup...'
+          sleep 10m
 
   deploy-external:
     name: Deployed External (via user) (Stage 2 & 3)
