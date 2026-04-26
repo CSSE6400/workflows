@@ -176,6 +176,9 @@ jobs:
         run: terraform init
 
       - name: Plan
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
         run: |
           terraform plan -out=tfplan.binary
           terraform show -json tfplan.binary > tfplan.json
@@ -194,6 +197,9 @@ jobs:
           path: tfplan.json
 
       - name: Apply
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
         run: terraform apply -auto-approve
       
       - name: Upload terraform state
