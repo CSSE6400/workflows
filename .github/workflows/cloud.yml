@@ -46,7 +46,7 @@ on:
 jobs:
   deploy-local:
     name: Build & Test (Stage 1)
-    if: ${{ github.ref_name == 'stage-1' || startsWith(github.ref_name, 'stage-1/') }}
+    if: ${{ github.ref_name == 'stage-1' }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     steps:
       - name: Checkout
@@ -111,7 +111,7 @@ jobs:
 
   deploy-remote:
     name: Build & Deploy (Stage 2/3)
-    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ inputs.deploy && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, student]
     timeout-minutes: 40
     outputs:
@@ -223,7 +223,7 @@ jobs:
 
   deploy-external:
     name: Deployed External (via user) (Stage 2 & 3)
-    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ inputs.deploy != true && inputs.deployed-url != '' && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
       endpoint: ${{ steps.collect.outputs.endpoint }}
@@ -236,7 +236,7 @@ jobs:
 
   deploy-check:
     name: Check Endpoint (Stage 2 & 3)
-    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality ) && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ always() && (inputs.deploy || inputs.deployed-url != '' || inputs.functionality ) && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     needs: [deploy-remote, deploy-external]
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     outputs:
@@ -268,7 +268,7 @@ jobs:
   functionality:
     name: Test Functionality
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ always() && inputs.functionality && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     needs: [deploy-check]
     steps:
       - name: Setup node
@@ -395,7 +395,7 @@ jobs:
   deploy-destroy:
     name: Destroy (Stage 2/3)
     runs-on: [self-hosted, Linux, X64, amazon, generic]
-    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || startsWith(github.ref_name, 'stage-2/') || github.ref_name == 'stage-3' || startsWith(github.ref_name, 'stage-3/')) }}
+    if: ${{ always() && inputs.deploy && (github.ref_name == 'stage-2' || github.ref_name == 'stage-3') }}
     needs: [deploy-remote, functionality, load]
     steps:
       - name: Checkout
