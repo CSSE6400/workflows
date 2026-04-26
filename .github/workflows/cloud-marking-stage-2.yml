@@ -1,0 +1,221 @@
+name: Cloud Assignment [Stage 2]
+
+on:
+  workflow_call:
+    inputs:
+      assignment:
+        description: 'Name of the assignment e.g. spamoverflow'
+        required: true
+        type: string
+      repository:
+        description: 'Name of the respository to run'
+        required: true
+        type: string
+      commit:
+        description: 'Commit hash to checkout'
+        required: true
+        type: string
+      account-id:
+        description: 'Account ID of the AWS account to authenticate to'
+        required: true
+        type: string
+
+jobs:
+  mark:
+    name: Stage 2 Mark
+    runs-on: [self-hosted, Linux, X64, amazon, student]
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.CLOUD_ASSIGNMENT_MARKING_APP_ID }}
+          private-key: ${{ secrets.CLOUD_ASSIGNMENT_MARKING_PRIVATE_KEY }}
+          owner: CSSE6400
+          repositories: |
+            ${{ inputs.assignment }}-tests
+            ${{ inputs.assignment }}-${{ inputs.repository }}
+
+      - name: Checkout student code
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
+          ref: ${{ inputs.commit }}
+          path: submission
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/student-deploy
+      
+      - name: Clone tests
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          repository: csse6400/${{ inputs.assignment }}-tests
+          path: marking
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Execute before script if it exists
+        run: |
+          SCRIPT_PATH="./before.sh"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "::notice file=$SCRIPT_PATH::Script found, executing."
+            # Make the script executable and run it
+            chmod +x "$SCRIPT_PATH"
+            ./before.sh
+          else
+            echo "::warning file=$SCRIPT_PATH::Script not found, skipping execution."
+          fi
+        shell: bash
+
+      - name: Init
+        run: terraform init
+
+      - name: Plan
+        run: |
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - uses: borchero/terraform-plan-comment@v2
+        with:
+          token: "${{ github.token }}"
+          planfile: "tfplan.binary"
+          header: 📝 Terraform Plan
+          skip-comment: true
+
+      - name: Upload terraform plan (json)
+        uses: actions/upload-artifact@v6
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+        with:
+          name: tfplan.json
+          path: tfplan.json
+
+      - name: Apply
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+        run: terraform apply -auto-approve
+      
+      - name: Upload terraform state
+        uses: actions/upload-artifact@v6
+        with:
+          name: terraform.tfstate
+          path: terraform.tfstate
+
+      - name: Collect deployed URL
+        id: collect
+        shell: bash
+        run: |
+          echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
+      
+      - name: Sleep for 10 minutes
+        shell: bash
+        run: |
+          echo 'Sleeping for 10 minutes to allow resources to warmup...'
+          sleep 10m
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd marking && poetry install
+
+      - name: Run tests
+        shell: bash
+        env:
+          pytest_github_report: true
+          pytest_report_title: ":stethoscope: Functionality Tests"
+          pytest_verbosity: 1
+          TEST_HOST: ${{ steps.collect.outputs.endpoint }}
+        run: |
+          echo "running tests...."
+          cd marking && poetry run pytest functionality --timeout 15 --junit-xml=report.xml
+      
+      - name: Upload test report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: report.xml
+          path: marking/report.xml
+
+      - name: Destroy
+        if: always()
+        run: terraform destroy -auto-approve
+
+  cleanup:
+    name: Cleanup AWS Account
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/student-deploy
+
+      - name: Nuke config
+        run: |
+          cat <<EOF > nuke.config
+          regions:
+            - us-east-1
+
+          account-blocklist:
+            - "165437353964"
+
+          accounts:
+            "575639899499":
+              presets:
+                - "student"
+            "842020797388":
+              presets:
+                - "student"
+            "341820803203":
+              presets:
+                - "student"
+            "130164556528":
+              presets:
+                - "student"
+            "251457826413":
+              presets:
+                - "student"
+          
+          presets:
+            student:
+              filters:
+                __global__:
+                  - property: tag:CourseRole
+                    value: Student
+          EOF
+      
+      - name: Run Nuke
+        run: |
+          wget https://github.com/ekristen/aws-nuke/releases/download/v3.64.0/aws-nuke-v3.64.0-linux-amd64.tar.gz -O - | tar -xz -C .
+          chmod +x aws-nuke
+          ./aws-nuke --no-alias-check -c nuke-config.yml
