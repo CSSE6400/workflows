@@ -372,6 +372,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
           repository: csse6400/${{ inputs.assignment }}-tests
+          ref: scalability-tests
           path: marking
       
       - name: Install K6
