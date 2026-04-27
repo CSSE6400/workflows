@@ -390,7 +390,7 @@ jobs:
           K6_SUMMARY_MODE: compact
           TEST_HOST: ${{ needs.deploy-check.outputs.endpoint }}
         run: |
-          cd marking/scalability && ./run.sh >> $GITHUB_STEP_SUMMARY
+          cd marking/scalability && ./bin/runk6.sh >> $GITHUB_STEP_SUMMARY
 
   deploy-destroy:
     name: Destroy (Stage 2/3)
