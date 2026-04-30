@@ -38,7 +38,7 @@ jobs:
             fi
 
   terraform:
-    if: ${{ github.ref_name == 'stage-2' || github.ref_name == 'stage-3' }}
+    if: ${{ github.ref_name == 'disabled' && ( github.ref_name == 'stage-2' || github.ref_name == 'stage-3' ) }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
@@ -116,6 +116,7 @@ jobs:
 
   ai:
     name: AI
+    if: ${{ github.ref_name == 'disabled' }}
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Checkout repository
