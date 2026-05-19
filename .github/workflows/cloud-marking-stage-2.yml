@@ -193,6 +193,9 @@ jobs:
             "652892607920":
               presets:
                 - "student"
+
+          bypass-alias-check-accounts:
+            - 652892607920
           
           presets:
             student:
