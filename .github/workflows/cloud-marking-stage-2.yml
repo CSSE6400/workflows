@@ -161,6 +161,8 @@ jobs:
 
   cleanup:
     name: Cleanup AWS Account
+    # needs: [mark]
+    if: always()
     runs-on: [self-hosted, Linux, X64, amazon, generic]
     steps:
       - name: Setup node
@@ -176,7 +178,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/student-deploy
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/Lab
 
       - name: Nuke config
         run: |
