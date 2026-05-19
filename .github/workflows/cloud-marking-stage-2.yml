@@ -206,4 +206,4 @@ jobs:
         run: |
           wget https://github.com/ekristen/aws-nuke/releases/download/v3.64.0/aws-nuke-v3.64.0-linux-amd64.tar.gz -O - | tar -xz -C .
           chmod +x aws-nuke
-          ./aws-nuke --no-alias-check -c nuke.config
+          ./aws-nuke run --no-alias-check -c nuke.config
