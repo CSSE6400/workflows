@@ -178,7 +178,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/Lab
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/LabRole
 
       - name: Nuke config
         run: |
