@@ -203,7 +203,7 @@ jobs:
                 __global__:
                   - property: tag:CourseRole
                     value: Student
-                    type: invert
+                    invert: true
           EOF
       
       - name: Run Nuke
