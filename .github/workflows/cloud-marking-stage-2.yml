@@ -57,7 +57,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/student-deploy
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/LabRole
       
       - name: Clone tests
         uses: actions/checkout@v6
