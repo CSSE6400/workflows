@@ -186,6 +186,10 @@ jobs:
           regions:
             - us-east-1
 
+          targets:
+            exclude:
+              - SSMAssociation
+
           account-blocklist:
             - "165437353964"
 
