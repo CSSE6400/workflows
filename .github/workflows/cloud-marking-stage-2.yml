@@ -186,8 +186,8 @@ jobs:
           regions:
             - us-east-1
 
-          targets:
-            exclude:
+          resource-types:
+            excludes:
               - SSMAssociation
 
           account-blocklist:
