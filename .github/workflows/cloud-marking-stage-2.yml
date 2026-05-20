@@ -72,6 +72,7 @@ jobs:
 
       - name: Execute before script if it exists
         run: |
+          cd submission
           SCRIPT_PATH="./before.sh"
           if [ -f "$SCRIPT_PATH" ]; then
             echo "::notice file=$SCRIPT_PATH::Script found, executing."
@@ -82,17 +83,18 @@ jobs:
         shell: bash
 
       - name: Init
-        run: terraform init
+        run: cd submission && terraform init
 
       - name: Plan
         run: |
+          cd submission
           terraform plan -out=tfplan.binary
           terraform show -json tfplan.binary > tfplan.json
 
       - uses: borchero/terraform-plan-comment@v2
         with:
           token: "${{ github.token }}"
-          planfile: "tfplan.binary"
+          planfile: "submission/tfplan.binary"
           header: 📝 Terraform Plan
           skip-comment: true
 
@@ -103,24 +105,25 @@ jobs:
           TF_AWS_DEFAULT_TAGS_CourseRole: Student
         with:
           name: tfplan.json
-          path: tfplan.json
+          path: submission/tfplan.json
 
       - name: Apply
         env:
           TF_AWS_DEFAULT_TAGS_Course: CSSE6400
           TF_AWS_DEFAULT_TAGS_CourseRole: Student
-        run: terraform apply -auto-approve
+        run: cd submission && terraform apply -auto-approve
       
       - name: Upload terraform state
         uses: actions/upload-artifact@v6
         with:
           name: terraform.tfstate
-          path: terraform.tfstate
+          path: submission/terraform.tfstate
 
       - name: Collect deployed URL
         id: collect
         shell: bash
         run: |
+          cd submission
           echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
       
       - name: Sleep for 10 minutes
@@ -157,7 +160,7 @@ jobs:
 
       - name: Destroy
         if: always()
-        run: terraform destroy -auto-approve
+        run: cd submission && terraform destroy -auto-approve
 
   cleanup:
     name: Cleanup AWS Account
