@@ -159,9 +159,9 @@ jobs:
           name: report.xml
           path: marking/report.xml
 
-      # - name: Destroy
-      #   if: always()
-      #   run: cd submission && terraform destroy -auto-approve
+      - name: Destroy
+        if: always()
+        run: cd submission && terraform destroy -auto-approve
 
   cleanup:
     name: Cleanup AWS Account
