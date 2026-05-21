@@ -243,6 +243,11 @@ jobs:
                   - property: tag:CourseRole
                     value: Student
                     invert: true
+                ECRRepository:
+                  - property: "Name"
+                    value: "*"
+                    invert: true
+                    type: "glob"
           EOF
       
       - name: Run Nuke
