@@ -201,12 +201,40 @@ jobs:
             - "165437353964"
 
           accounts:
+            "842020797388":
+              presets:
+                - "student"
+            "341820803203":
+              presets:
+                - "student"
+            "130164556528":
+              presets:
+                - "student"
+            "251457826413":
+              presets:
+                - "student"
             "652892607920":
+              presets:
+                - "student"
+            "857037250218":
+              presets:
+                - "student"
+            "317429618816":
+              presets:
+                - "student"
+            "049145893835":
               presets:
                 - "student"
 
           bypass-alias-check-accounts:
+            - 842020797388
+            - 341820803203
+            - 130164556528
+            - 251457826413
             - 652892607920
+            - 857037250218
+            - 317429618816
+            - 049145893835
           
           presets:
             student:
