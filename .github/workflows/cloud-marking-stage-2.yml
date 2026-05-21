@@ -71,6 +71,9 @@ jobs:
         uses: hashicorp/setup-terraform@v4
 
       - name: Execute before script if it exists
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
         run: |
           cd submission
           SCRIPT_PATH="./before.sh"
