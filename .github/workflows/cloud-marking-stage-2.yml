@@ -74,6 +74,7 @@ jobs:
         env:
           TF_AWS_DEFAULT_TAGS_Course: CSSE6400
           TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
         run: |
           cd submission
           SCRIPT_PATH="./before.sh"
@@ -92,6 +93,7 @@ jobs:
         env:
           TF_AWS_DEFAULT_TAGS_Course: CSSE6400
           TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
         run: |
           cd submission
           terraform plan -out=tfplan.binary
@@ -115,6 +117,7 @@ jobs:
         env:
           TF_AWS_DEFAULT_TAGS_Course: CSSE6400
           TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
         run: cd submission && terraform apply -auto-approve
       
       - name: Upload terraform state
