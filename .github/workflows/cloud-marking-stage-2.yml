@@ -199,6 +199,33 @@ jobs:
           resource-types:
             excludes:
               - SSMAssociation
+              - AWS::Timestream::Table
+              - AWS::Timestream::ScheduledQuery
+              - AWS::Timestream::Database
+              - ShieldProtection
+              - ShieldProtectionGroup
+              - OpsWorksInstance
+              - OpsWorksApp
+              - CloudSearchDomain
+              - FMSPolicy
+              - FMSNotificationChannel
+              - MachineLearningMLModel
+              - MachineLearningBranchPrediction
+              - MachineLearningDataSource
+              - MachineLearningEvaluation
+              - LexBot
+              - LexSlotType
+              - LexIntent
+              - LexModelBuildingServiceBotAlias
+              - OpsWorksUserProfile
+              - OpsWorksLayer
+              - OpsWorksCMBackup
+              - OpsWorksCMServer
+              - OpsWorksCMServerState
+              - Cloud9Environment
+              - ElasticTranscoderPreset
+              - ElasticTranscoderPipeline
+              - CodeStarProject
 
           account-blocklist:
             - "165437353964"
