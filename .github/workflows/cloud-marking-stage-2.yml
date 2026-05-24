@@ -167,6 +167,10 @@ jobs:
 
       - name: Destroy
         if: always()
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
         run: cd submission && terraform destroy -auto-approve
 
   cleanup:
