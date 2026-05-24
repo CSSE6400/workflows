@@ -192,7 +192,7 @@ jobs:
 
       - name: Nuke config
         run: |
-          cat <<EOF > nuke.config
+          cat <<EOF > nuke-student.yaml
           regions:
             - us-east-1
 
@@ -227,7 +227,7 @@ jobs:
               - ElasticTranscoderPipeline
               - CodeStarProject
 
-          account-blocklist:
+          blocklist:
             - "165437353964"
 
           accounts:
@@ -273,15 +273,68 @@ jobs:
                   - property: tag:CourseRole
                     value: Student
                     invert: true
-                ECRRepository:
-                  - property: "Name"
-                    value: "*"
-                    invert: true
-                    type: "glob"
+          EOF
+
+      - name: Nuke Extra config
+        run: |
+          cat <<EOF > nuke-extra.yaml
+          regions:
+            - us-east-1
+
+          resource-types:
+            includes:
+              - ECRRepository
+
+          blocklist:
+            - "165437353964"
+
+          accounts:
+            "842020797388":
+              presets:
+                - "student"
+            "341820803203":
+              presets:
+                - "student"
+            "130164556528":
+              presets:
+                - "student"
+            "251457826413":
+              presets:
+                - "student"
+            "652892607920":
+              presets:
+                - "student"
+            "857037250218":
+              presets:
+                - "student"
+            "317429618816":
+              presets:
+                - "student"
+            "049145893835":
+              presets:
+                - "student"
+
+          bypass-alias-check-accounts:
+            - 842020797388
+            - 341820803203
+            - 130164556528
+            - 251457826413
+            - 652892607920
+            - 857037250218
+            - 317429618816
+            - 049145893835
+
+          presets:
+            student:
+              resource-types:
+                includes:
+                  - ECRRepository
+          
           EOF
       
       - name: Run Nuke
         run: |
           wget https://github.com/ekristen/aws-nuke/releases/download/v3.64.0/aws-nuke-v3.64.0-linux-amd64.tar.gz -O - | tar -xz -C .
           chmod +x aws-nuke
-          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke.config
+          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-student.yaml
+          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-extra.yaml
