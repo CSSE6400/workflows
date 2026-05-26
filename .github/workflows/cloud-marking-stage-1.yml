@@ -30,7 +30,6 @@ jobs:
           repositories: |
             ${{ inputs.assignment }}-tests
             ${{ inputs.assignment }}-${{ inputs.repository }}
-            ${{ inputs.assignment }}-engine
 
       - name: Checkout student code
         uses: actions/checkout@v6
@@ -40,6 +39,7 @@ jobs:
           repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
           ref: ${{ inputs.commit }}
           path: submission
+          submodules: false
 
       - name: Setup node
         uses: actions/setup-node@v6
