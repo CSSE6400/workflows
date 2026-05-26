@@ -59,7 +59,7 @@ jobs:
               exit 0
           fi
 
-          MISSING_D=$(grep -E "docker run|docker(-compose| compose) up" "$TARGET_FILE" | grep -vE "[[:space:]]-d([[:space:]]|$)")
+          MISSING_D=$(grep -E "docker run|compose up" "$TARGET_FILE" | grep -vE "[[:space:]]-d([[:space:]]|$)")
 
           if [ -z "$MISSING_D" ]; then
               echo "All Docker run/compose commands already have the -d flag. No changes made."
@@ -70,7 +70,7 @@ jobs:
           echo "> Had to insert a -d to run the job as detached" >> $GITHUB_STEP_SUMMARY
 
           sed -i 's/docker-compose/docker compose/g' "$TARGET_FILE"
-          sed -i -E '/docker(-compose| compose) up/!b; /[[:space:]]-d([[:space:]]|$)/b; s/docker compose up/docker compose up -d/; s/docker-compose up/docker-compose up -d/' "$TARGET_FILE"
+          sed -i -E '/compose up/!b; /[[:space:]]-d([[:space:]]|$)/b; s/compose up/compose up -d/' "$TARGET_FILE"
           sed -i -E '/docker run/!b; /[[:space:]]-d([[:space:]]|$)/b; s/docker run/docker run -d/' "$TARGET_FILE"
 
           echo "Successfully updated $TARGET_FILE!"
