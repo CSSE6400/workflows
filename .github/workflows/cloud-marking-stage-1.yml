@@ -30,6 +30,7 @@ jobs:
           repositories: |
             ${{ inputs.assignment }}-tests
             ${{ inputs.assignment }}-${{ inputs.repository }}
+            ${{ inputs.assignment }}-engine
 
       - name: Checkout student code
         uses: actions/checkout@v6
