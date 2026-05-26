@@ -82,9 +82,7 @@ jobs:
           sed -i -E '/docker run/!b; /[[:space:]]-d([[:space:]]|$)/b; s/docker run/docker run -d/' "$TARGET_FILE"
 
           echo "Successfully updated $TARGET_FILE!"
-          echo "```" >> $GITHUB_STEP_SUMMARY
           cat "$TARGET_FILE" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
           exit 0
 
       - name: Build
