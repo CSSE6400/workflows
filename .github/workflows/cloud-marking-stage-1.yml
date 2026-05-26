@@ -51,6 +51,8 @@ jobs:
       - name: Fix Build
         shell: bash
         run: |
+          set +e
+
           cd submission
           TARGET_FILE="local.sh"
 
@@ -74,6 +76,7 @@ jobs:
           sed -i -E '/docker run/!b; /[[:space:]]-d([[:space:]]|$)/b; s/docker run/docker run -d/' "$TARGET_FILE"
 
           echo "Successfully updated $TARGET_FILE!"
+          exit 0
 
       - name: Build
         shell: bash
