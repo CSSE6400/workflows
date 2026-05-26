@@ -75,7 +75,7 @@ jobs:
           echo "> Had to insert a -d to run the job as detached" >> $GITHUB_STEP_SUMMARY
 
           # Remove any --rm
-          sed -i 's/\b--rm\b//g' "$TARGET_FILE"
+          sed -i 's/--rm//g' "$TARGET_FILE"
 
           # Add detach
           sed -i -E '/compose up/!b; /[[:space:]]-d([[:space:]]|$)/b; s/compose up/compose up -d/' "$TARGET_FILE"
