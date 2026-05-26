@@ -51,6 +51,7 @@ jobs:
       - name: Fix Build
         shell: bash
         run: |
+          cd submission
           TARGET_FILE="local.sh"
 
           if [ ! -f "$TARGET_FILE" ]; then
