@@ -35,7 +35,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
-          persist-credentials: false
           repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
           ref: ${{ inputs.commit }}
           path: submission
