@@ -288,6 +288,7 @@ jobs:
           resource-types:
             includes:
               - ECRRepository
+              - CloudWatchLogsLogGroup
 
           blocklist:
             - "165437353964"
@@ -333,6 +334,12 @@ jobs:
               resource-types:
                 includes:
                   - ECRRepository
+                  - CloudWatchLogsLogGroup:
+              filters:
+                CloudWatchLogsLogGroup:
+                  - property: Name
+                    type: regex
+                    value: "^/aws/lambda.*$"
           
           EOF
       
