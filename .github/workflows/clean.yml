@@ -1,0 +1,185 @@
+name: AWS Account Clean
+
+on:
+  workflow_call:
+    inputs:
+      account-id:
+        description: 'Account ID of the AWS account to authenticate to'
+        required: true
+        type: string
+
+jobs:
+  cleanup:
+    name: Cleanup AWS Account
+    runs-on: [self-hosted, Linux, X64, amazon, generic]
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::${{ inputs.account-id }}:role/LabRole
+
+      - name: Nuke config
+        run: |
+          cat <<EOF > nuke-student.yaml
+          regions:
+            - us-east-1
+
+          resource-types:
+            excludes:
+              - SSMAssociation
+              - AWS::Timestream::Table
+              - AWS::Timestream::ScheduledQuery
+              - AWS::Timestream::Database
+              - ShieldProtection
+              - ShieldProtectionGroup
+              - OpsWorksInstance
+              - OpsWorksApp
+              - CloudSearchDomain
+              - FMSPolicy
+              - FMSNotificationChannel
+              - MachineLearningMLModel
+              - MachineLearningBranchPrediction
+              - MachineLearningDataSource
+              - MachineLearningEvaluation
+              - LexBot
+              - LexSlotType
+              - LexIntent
+              - LexModelBuildingServiceBotAlias
+              - OpsWorksUserProfile
+              - OpsWorksLayer
+              - OpsWorksCMBackup
+              - OpsWorksCMServer
+              - OpsWorksCMServerState
+              - Cloud9Environment
+              - ElasticTranscoderPreset
+              - ElasticTranscoderPipeline
+              - CodeStarProject
+
+          blocklist:
+            - "165437353964"
+
+          accounts:
+            "842020797388":
+              presets:
+                - "student"
+            "341820803203":
+              presets:
+                - "student"
+            "130164556528":
+              presets:
+                - "student"
+            "251457826413":
+              presets:
+                - "student"
+            "652892607920":
+              presets:
+                - "student"
+            "857037250218":
+              presets:
+                - "student"
+            "317429618816":
+              presets:
+                - "student"
+            "049145893835":
+              presets:
+                - "student"
+
+          bypass-alias-check-accounts:
+            - 842020797388
+            - 341820803203
+            - 130164556528
+            - 251457826413
+            - 652892607920
+            - 857037250218
+            - 317429618816
+            - 049145893835
+          
+          presets:
+            student:
+              filters:
+                __global__:
+                  - property: tag:CourseRole
+                    value: Student
+                    invert: true
+          EOF
+
+      - name: Nuke Extra config
+        run: |
+          cat <<EOF > nuke-extra.yaml
+          regions:
+            - us-east-1
+
+          resource-types:
+            includes:
+              - ECRRepository
+              - CloudWatchLogsLogGroup
+
+          blocklist:
+            - "165437353964"
+
+          accounts:
+            "842020797388":
+              presets:
+                - "student"
+            "341820803203":
+              presets:
+                - "student"
+            "130164556528":
+              presets:
+                - "student"
+            "251457826413":
+              presets:
+                - "student"
+            "652892607920":
+              presets:
+                - "student"
+            "857037250218":
+              presets:
+                - "student"
+            "317429618816":
+              presets:
+                - "student"
+            "049145893835":
+              presets:
+                - "student"
+
+          bypass-alias-check-accounts:
+            - 842020797388
+            - 341820803203
+            - 130164556528
+            - 251457826413
+            - 652892607920
+            - 857037250218
+            - 317429618816
+            - 049145893835
+
+          presets:
+            student:
+              resource-types:
+                includes:
+                  - ECRRepository
+                  - CloudWatchLogsLogGroup:
+              filters:
+                CloudWatchLogsLogGroup:
+                  - property: Name
+                    type: regex
+                    value: "^/aws/lambda.*$"
+          
+          EOF
+      
+      - name: Run Nuke
+        run: |
+          wget https://github.com/ekristen/aws-nuke/releases/download/v3.64.0/aws-nuke-v3.64.0-linux-amd64.tar.gz -O - | tar -xz -C .
+          chmod +x aws-nuke
+          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-student.yaml
+          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-extra.yaml
