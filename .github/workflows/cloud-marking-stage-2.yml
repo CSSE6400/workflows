@@ -89,8 +89,8 @@ jobs:
 
       - name: Plan
         env:
-          # TF_AWS_DEFAULT_TAGS_Course: CSSE6400
-          # TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
           TF_INPUT: false
         run: |
           cd submission
@@ -113,8 +113,8 @@ jobs:
 
       - name: Apply
         env:
-          # TF_AWS_DEFAULT_TAGS_Course: CSSE6400
-          # TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
           TF_INPUT: false
         run: cd submission && terraform apply -auto-approve
       
