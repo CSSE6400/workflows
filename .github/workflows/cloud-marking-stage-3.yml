@@ -152,7 +152,7 @@ jobs:
           pytest_report_title: ":stethoscope: Functionality Tests"
           pytest_verbosity: 1
           TEST_HOST: ${{ steps.collect.outputs.endpoint }}
-          TEST_ALLOW_FAILS: true
+          TEST_ALLOWS_FAILS: true
         run: |
           echo "running tests...."
           cd marking && poetry run pytest functionality --timeout 15 --junit-xml=report.xml
