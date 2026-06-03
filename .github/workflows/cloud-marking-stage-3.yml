@@ -368,9 +368,11 @@ jobs:
       
       - name: Run Nuke
         run: |
+          set +e
+
           wget https://github.com/ekristen/aws-nuke/releases/download/v3.64.0/aws-nuke-v3.64.0-linux-amd64.tar.gz -O - | tar -xz -C .
           chmod +x aws-nuke
           ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-student.yaml
-          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-student.yaml
+          ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-extra.yaml
           ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-student.yaml
           ./aws-nuke run --no-dry-run --no-alias-check --no-prompt -q -c nuke-extra.yaml
