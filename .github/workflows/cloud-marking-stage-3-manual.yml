@@ -1,0 +1,210 @@
+name: Cloud Assignment [Stage 3] Manual
+
+on:
+  workflow_call:
+    inputs:
+      assignment:
+        description: 'Name of the assignment e.g. spamoverflow'
+        required: true
+        type: string
+      repository:
+        description: 'Name of the respository to run'
+        required: true
+        type: string
+      commit:
+        description: 'Commit hash to checkout'
+        required: true
+        type: string
+      aws-access-key-id:
+        description: 'AWS Access Key ID'
+        required: true
+        type: string
+      aws-secret-access-key:
+        description: 'AWS Secret Access Key'
+        required: true
+        type: string
+      aws-session-token:
+        description: 'AWS Session Token'
+        required: true
+        type: string
+
+jobs:
+  mark:
+    name: Stage 3 Mark
+    runs-on: [self-hosted, Linux, X64, amazon, student]
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.CLOUD_ASSIGNMENT_MARKING_APP_ID }}
+          private-key: ${{ secrets.CLOUD_ASSIGNMENT_MARKING_PRIVATE_KEY }}
+          owner: CSSE6400
+          repositories: |
+            ${{ inputs.assignment }}-tests
+            ${{ inputs.assignment }}-${{ inputs.repository }}
+
+      - name: Checkout student code
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: csse6400/${{ inputs.assignment }}-${{ inputs.repository }}
+          ref: ${{ inputs.commit }}
+          path: submission
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.12'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ inputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+          aws-session-token: ${{ inputs.aws-session-token }}
+      
+      - name: Clone tests
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: csse6400/${{ inputs.assignment }}-tests
+          path: marking
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Execute before script if it exists
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
+        run: |
+          cd submission
+          SCRIPT_PATH="./before.sh"
+          if [ -f "$SCRIPT_PATH" ]; then
+            echo "::notice file=$SCRIPT_PATH::Script found, executing."
+            # Make the script executable and run it
+            chmod +x "$SCRIPT_PATH"
+            ./before.sh
+          fi
+        shell: bash
+
+      - name: Init
+        run: cd submission && terraform init
+
+      - name: Plan
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
+        run: |
+          cd submission
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - uses: borchero/terraform-plan-comment@v2
+        with:
+          token: "${{ github.token }}"
+          working-directory: "submission"
+          planfile: "tfplan.binary"
+          header: 📝 Terraform Plan
+          skip-comment: true
+
+      - name: Upload terraform plan (json)
+        uses: actions/upload-artifact@v6
+        with:
+          name: tfplan.json
+          path: submission/tfplan.json
+
+      - name: Apply
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
+        run: cd submission && terraform apply -auto-approve
+      
+      - name: Upload terraform state
+        uses: actions/upload-artifact@v6
+        with:
+          name: terraform.tfstate
+          path: submission/terraform.tfstate
+
+      - name: Collect deployed URL
+        id: collect
+        shell: bash
+        run: |
+          cd submission
+          echo "endpoint=$(terraform output -raw api)" >> "$GITHUB_OUTPUT"
+      
+      - name: Sleep for 10 minutes
+        shell: bash
+        run: |
+          echo 'Sleeping for 10 minutes to allow resources to warmup...'
+          sleep 10m
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd marking && poetry install
+
+      - name: Run tests
+        shell: bash
+        env:
+          pytest_github_report: true
+          pytest_report_title: ":stethoscope: Functionality Tests"
+          pytest_verbosity: 1
+          TEST_HOST: ${{ steps.collect.outputs.endpoint }}
+          TEST_ALLOWS_FAILS: true
+        run: |
+          echo "running tests...."
+          cd marking && poetry run pytest functionality --timeout 15 --junit-xml=report.xml
+      
+      - name: Upload test report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: report.xml
+          path: marking/report.xml
+
+      - name: Install K6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Load Test
+        shell: bash
+        env:
+          K6_SUMMARY_MODE: compact
+          TEST_HOST: ${{ steps.collect.outputs.endpoint }}
+        run: |
+          cd marking/scalability && ./bin/runk6.sh >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload k6 report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: k6-summary
+          path: marking/scalability/*.summary.json
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ inputs.aws-access-key-id }}
+          aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+          aws-session-token: ${{ inputs.aws-session-token }}
+
+      - name: Destroy
+        if: always()
+        env:
+          TF_AWS_DEFAULT_TAGS_Course: CSSE6400
+          TF_AWS_DEFAULT_TAGS_CourseRole: Student
+          TF_INPUT: false
+        run: cd submission && terraform destroy -auto-approve
+
